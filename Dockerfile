@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libreoffice-impress \
     python3 \
     python3-pip \
+    python3-venv \
     python3-dev \
     poppler-utils \
     default-jre \
@@ -28,9 +29,11 @@ RUN npm install
 # Copy Python requirements
 COPY server/requirements.txt ./server/
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir -r server/requirements.txt --break-system-packages
+# Create Python virtual environment and install dependencies
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r server/requirements.txt
 
 # Copy application files
 COPY . .
@@ -51,6 +54,7 @@ EXPOSE 5000
 ENV PORT=5000
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Start the application
 CMD ["bash", "start.sh"]

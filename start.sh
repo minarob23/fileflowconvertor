@@ -4,6 +4,12 @@
 echo "🔍 Verifying dependencies..."
 echo ""
 
+# Activate virtual environment if it exists
+if [ -d "/opt/venv" ]; then
+    source /opt/venv/bin/activate
+    echo "✅ Python virtual environment activated"
+fi
+
 # Check LibreOffice
 echo "📄 Checking LibreOffice..."
 if command -v soffice &> /dev/null; then
