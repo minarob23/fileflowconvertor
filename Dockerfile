@@ -55,6 +55,8 @@ ENV PORT=5000
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/opt/venv/bin:$PATH"
+# Java memory settings for Railway (prevent OOM)
+ENV _JAVA_OPTIONS="-Xmx512m -Xms128m"
 
 # Start the application
 CMD ["bash", "start.sh"]

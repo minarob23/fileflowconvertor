@@ -9,10 +9,11 @@ import os
 from pathlib import Path
 
 def convert_pdf_to_word(pdf_path: str, output_path: str) -> bool:
-    """Convert PDF to Word document using pdf2docx"""
+    """Convert PDF to Word document using pdf2docx with PyMuPDF fallback"""
     try:
         from pdf2docx import Converter
         
+        print("[INFO] Using pdf2docx for conversion...")
         cv = Converter(pdf_path)
         cv.convert(output_path)
         cv.close()
@@ -20,21 +21,66 @@ def convert_pdf_to_word(pdf_path: str, output_path: str) -> bool:
         print(f"Successfully converted to Word: {output_path}")
         return True
     except Exception as e:
-        print(f"Error converting PDF to Word: {e}", file=sys.stderr)
-        return False
+        print(f"pdf2docx error: {e}", file=sys.stderr)
+        print("[INFO] Trying fallback method with PyMuPDF...", file=sys.stderr)
+        
+        # Fallback to PyMuPDF for text extraction
+        try:
+            import fitz  # PyMuPDF
+            from docx import Document
+            from docx.shared import Pt
+            
+            doc = Document()
+            pdf_doc = fitz.open(pdf_path)
+            
+            for page_num in range(len(pdf_doc)):
+                page = pdf_doc[page_num]
+                text = page.get_text()
+                
+                if page_num > 0:
+                    doc.add_page_break()
+                
+                # Add text to document
+                if text.strip():
+                    paragraph = doc.add_paragraph(text)
+                    paragraph.style.font.size = Pt(11)
+            
+            pdf_doc.close()
+            doc.save(output_path)
+            
+            print(f"Successfully converted to Word using PyMuPDF: {output_path}")
+            return True
+        except Exception as fallback_error:
+            print(f"Fallback conversion also failed: {fallback_error}", file=sys.stderr)
+            return False
 
 def convert_pdf_to_excel(pdf_path: str, output_path: str) -> bool:
-    """Convert PDF tables to Excel using tabula-py"""
+    """Convert PDF tables to Excel using tabula-py with memory limits"""
     try:
         import tabula
         from openpyxl import Workbook
+        import os
         
-        # Read all tables from PDF
-        tables = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True)
+        # Set Java memory limits to prevent OOM on Railway (512MB max)
+        java_options = [
+            '-Xmx512m',  # Maximum heap size
+            '-Xms128m',  # Initial heap size
+        ]
+        
+        # Read all tables from PDF with memory-constrained Java
+        print("[INFO] Extracting tables from PDF...")
+        tables = tabula.read_pdf(
+            pdf_path, 
+            pages='all', 
+            multiple_tables=True,
+            java_options=java_options
+        )
         
         if not tables or len(tables) == 0:
             print("No tables found in PDF", file=sys.stderr)
             return False
+        
+        print(f"[INFO] Found {len(tables)} table(s)")
         
         # Create Excel workbook
         wb = Workbook()
