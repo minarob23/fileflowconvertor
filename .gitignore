@@ -1,0 +1,14 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+.env
+
+# Temporary upload and conversion files
+uploads/
+converted/
+
+# Local state files
+.local/
