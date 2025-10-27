@@ -205,14 +205,23 @@ class ConversionQueue {
         return false;
       }
 
-      // Check if Python is available
+      // Check if Python is available (try python3 first for Linux, then python for Windows)
+      let pythonCmd = 'python';
       try {
-        await execAsync('python --version', { timeout: 5000 });
+        await execAsync('python3 --version', { timeout: 5000 });
+        pythonCmd = 'python3';
+        console.log('✓ Using python3 command');
       } catch {
-        console.error('❌ Python is not installed or not in PATH');
-        console.error('👉 Please install Python from https://www.python.org/downloads/');
-        console.error('👉 Or see WINDOWS_SETUP.md for detailed setup instructions');
-        return false;
+        try {
+          await execAsync('python --version', { timeout: 5000 });
+          pythonCmd = 'python';
+          console.log('✓ Using python command');
+        } catch {
+          console.error('❌ Python is not installed or not in PATH');
+          console.error('👉 Please install Python from https://www.python.org/downloads/');
+          console.error('👉 Or see WINDOWS_SETUP.md for detailed setup instructions');
+          return false;
+        }
       }
 
       // Check if input file exists
@@ -224,7 +233,7 @@ class ConversionQueue {
       }
 
       // Execute Python conversion script
-      const command = `python "${pythonScript}" "${inputPath}" "${outputPath}" ${targetFormat}`;
+      const command = `${pythonCmd} "${pythonScript}" "${inputPath}" "${outputPath}" ${targetFormat}`;
       console.log(`Executing PDF conversion: ${command}`);
       console.log(`Input file: ${inputPath}`);
       console.log(`Output file: ${outputPath}`);
@@ -252,7 +261,7 @@ class ConversionQueue {
         } else if (stderr.includes('No module named')) {
           console.error('');
           console.error('❌ MISSING PYTHON DEPENDENCIES');
-          console.error('👉 Install dependencies: pip install -r server/requirements.txt');
+          console.error('👉 Install dependencies: pip3 install -r server/requirements.txt');
           console.error('👉 See WINDOWS_SETUP.md for complete setup guide');
           console.error('');
         } else if (stderr.includes('Java')) {

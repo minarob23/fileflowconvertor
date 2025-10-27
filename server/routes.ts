@@ -107,14 +107,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch {}
 
       // Check Python
+      let pythonCmd = '';
       try {
-        await execAsync('python --version', { timeout: 5000 });
+        await execAsync('python3 --version', { timeout: 5000 });
+        pythonCmd = 'python3';
         health.dependencies.python = true;
       } catch {
         try {
-          await execAsync('python3 --version', { timeout: 5000 });
+          await execAsync('python --version', { timeout: 5000 });
+          pythonCmd = 'python';
           health.dependencies.python = true;
         } catch {}
+      }
+
+      // Check Python packages if Python is available
+      if (health.dependencies.python && pythonCmd) {
+        try {
+          const { stdout } = await execAsync(`${pythonCmd} -c "import pdf2docx, tabula, openpyxl, pptx, pdf2image; print('ok')"`, { timeout: 5000 });
+          (health.dependencies as any).pythonPackages = stdout.includes('ok');
+        } catch {
+          (health.dependencies as any).pythonPackages = false;
+        }
       }
 
       // Check Poppler
@@ -122,6 +135,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await execAsync('pdftoppm -h', { timeout: 5000 });
         health.dependencies.poppler = true;
       } catch {}
+
+      // Check Java
+      try {
+        await execAsync('java -version', { timeout: 5000 });
+        (health.dependencies as any).java = true;
+      } catch {
+        (health.dependencies as any).java = false;
+      }
 
       res.json(health);
     } catch (error) {
