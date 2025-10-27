@@ -9,49 +9,54 @@ import os
 from pathlib import Path
 
 def convert_pdf_to_word(pdf_path: str, output_path: str) -> bool:
-    """Convert PDF to Word document using pdf2docx with PyMuPDF fallback"""
+    """Convert PDF to Word document using PyMuPDF (primary) with pdf2docx fallback"""
+    
+    # Try PyMuPDF first (more reliable, better compatibility)
     try:
-        from pdf2docx import Converter
+        import fitz  # PyMuPDF
+        from docx import Document
+        from docx.shared import Pt, Inches
         
-        print("[INFO] Using pdf2docx for conversion...")
-        cv = Converter(pdf_path)
-        cv.convert(output_path)
-        cv.close()
+        print("[INFO] Using PyMuPDF for conversion...")
+        doc = Document()
+        pdf_doc = fitz.open(pdf_path)
         
-        print(f"Successfully converted to Word: {output_path}")
+        for page_num in range(len(pdf_doc)):
+            page = pdf_doc[page_num]
+            text = page.get_text()
+            
+            if page_num > 0:
+                doc.add_page_break()
+            
+            # Add text to document
+            if text.strip():
+                paragraph = doc.add_paragraph(text)
+                paragraph.style.font.size = Pt(11)
+        
+        pdf_doc.close()
+        doc.save(output_path)
+        
+        print(f"Successfully converted to Word using PyMuPDF: {output_path}")
         return True
-    except Exception as e:
-        print(f"pdf2docx error: {e}", file=sys.stderr)
-        print("[INFO] Trying fallback method with PyMuPDF...", file=sys.stderr)
         
-        # Fallback to PyMuPDF for text extraction
+    except Exception as pymupdf_error:
+        print(f"PyMuPDF error: {pymupdf_error}", file=sys.stderr)
+        print("[INFO] Trying pdf2docx for better formatting...", file=sys.stderr)
+        
+        # Fallback to pdf2docx for better formatting (may fail on some PDFs)
         try:
-            import fitz  # PyMuPDF
-            from docx import Document
-            from docx.shared import Pt
+            from pdf2docx import Converter
             
-            doc = Document()
-            pdf_doc = fitz.open(pdf_path)
+            cv = Converter(pdf_path)
+            cv.convert(output_path)
+            cv.close()
             
-            for page_num in range(len(pdf_doc)):
-                page = pdf_doc[page_num]
-                text = page.get_text()
-                
-                if page_num > 0:
-                    doc.add_page_break()
-                
-                # Add text to document
-                if text.strip():
-                    paragraph = doc.add_paragraph(text)
-                    paragraph.style.font.size = Pt(11)
-            
-            pdf_doc.close()
-            doc.save(output_path)
-            
-            print(f"Successfully converted to Word using PyMuPDF: {output_path}")
+            print(f"Successfully converted to Word using pdf2docx: {output_path}")
             return True
-        except Exception as fallback_error:
-            print(f"Fallback conversion also failed: {fallback_error}", file=sys.stderr)
+            
+        except Exception as pdf2docx_error:
+            print(f"pdf2docx also failed: {pdf2docx_error}", file=sys.stderr)
+            print(f"Error converting PDF to Word: Both methods failed", file=sys.stderr)
             return False
 
 def convert_pdf_to_excel(pdf_path: str, output_path: str) -> bool:
