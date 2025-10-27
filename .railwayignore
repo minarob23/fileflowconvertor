@@ -1,0 +1,42 @@
+# Railway ignore file - files/folders to exclude from deployment
+
+# Development files
+.git/
+.vscode/
+.idea/
+
+# Dependencies (will be reinstalled)
+node_modules/
+
+# Local environment files
+.env.local
+.env.development
+
+# Build artifacts (will be rebuilt)
+dist/
+.next/
+
+# Temporary files
+uploads/
+converted/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation (optional - remove if needed in production)
+WINDOWS_SETUP.md
+INSTALL_POPPLER.md
+PDF_SETUP_GUIDE.md
+design_guidelines.md
+
+# Test files
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Local database
+database.db
+database.db-journal

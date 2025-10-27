@@ -153,6 +153,20 @@ npm run build
 npm start
 ```
 
+### Deployment
+
+**Railway (Recommended):**
+- See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for complete Railway deployment guide
+- Includes automatic installation of LibreOffice, Python, and Poppler
+- Supports both Nixpacks and Docker deployment methods
+
+**Replit:**
+- The `.replit` file is pre-configured with LibreOffice in Nix packages
+
+**Other Platforms:**
+- Ensure LibreOffice, Python 3.8+, and Poppler are installed
+- Use the provided `Dockerfile` for containerized deployments
+
 ## Usage
 
 1. **Sign Up/Login**: Create an account or login with Google

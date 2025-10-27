@@ -20,11 +20,19 @@ const execAsync = promisify(exec);
 
 // Check LibreOffice installation on startup (silently)
 async function checkLibreOffice() {
-  const libreOfficePaths = [
-    'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-    'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-    'soffice',
-  ];
+  const libreOfficePaths = process.platform === 'win32'
+    ? [
+        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+        'soffice',
+      ]
+    : [
+        'soffice',
+        '/usr/bin/soffice',
+        '/usr/local/bin/soffice',
+        'libreoffice',
+        '/usr/bin/libreoffice',
+      ];
 
   for (const libreOfficeCmd of libreOfficePaths) {
     try {
@@ -33,15 +41,15 @@ async function checkLibreOffice() {
         : `${libreOfficeCmd} --version`;
       
       // Check version silently (suppress output)
-      await execAsync(versionCmd, { timeout: 5000 });
-      // LibreOffice is available - no console output
+      const { stdout } = await execAsync(versionCmd, { timeout: 5000 });
+      console.log(`✓ LibreOffice detected: ${libreOfficeCmd} - ${stdout.trim()}`);
       return true;
     } catch {
       continue;
     }
   }
 
-  // LibreOffice not found - only log if conversion is attempted
+  console.error('❌ LibreOffice not found - Office to PDF conversion will not work');
   return false;
 }
 
@@ -76,6 +84,54 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Health check endpoint - verify all dependencies
+  app.get('/api/health', async (req, res) => {
+    try {
+      const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        dependencies: {
+          libreoffice: false,
+          python: false,
+          poppler: false,
+          r2Storage: isR2Available(),
+        },
+        platform: process.platform,
+      };
+
+      // Check LibreOffice
+      try {
+        await checkLibreOffice();
+        health.dependencies.libreoffice = true;
+      } catch {}
+
+      // Check Python
+      try {
+        await execAsync('python --version', { timeout: 5000 });
+        health.dependencies.python = true;
+      } catch {
+        try {
+          await execAsync('python3 --version', { timeout: 5000 });
+          health.dependencies.python = true;
+        } catch {}
+      }
+
+      // Check Poppler
+      try {
+        await execAsync('pdftoppm -h', { timeout: 5000 });
+        health.dependencies.poppler = true;
+      } catch {}
+
+      res.json(health);
+    } catch (error) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Health check failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   // Configure Google OAuth
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {

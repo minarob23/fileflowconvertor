@@ -26,18 +26,26 @@ class ConversionQueue {
     }
 
     try {
-      // Try common LibreOffice paths on Windows
-      const commonPaths = [
-        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-        'soffice',
-      ];
+      // Try common LibreOffice paths (Windows and Linux/Railway)
+      const commonPaths = process.platform === 'win32' 
+        ? [
+            'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+            'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+            'soffice',
+          ]
+        : [
+            'soffice',  // Linux standard command
+            '/usr/bin/soffice',
+            '/usr/local/bin/soffice',
+            'libreoffice',
+            '/usr/bin/libreoffice',
+          ];
 
       for (const cmd of commonPaths) {
         try {
           const command = cmd.includes(' ') ? `"${cmd}"` : cmd;
           await execAsync(`${command} --version`, { timeout: 5000 });
-          // LibreOffice found - no console output
+          console.log(`✓ LibreOffice detected: ${cmd}`);
           this.libreOfficeAvailable = true;
           return true;
         } catch (err) {
@@ -45,8 +53,8 @@ class ConversionQueue {
         }
       }
 
+      console.error('❌ LibreOffice not found. Install required for Office→PDF conversion.');
       this.libreOfficeAvailable = false;
-      // Don't log paths on startup - only when conversion fails
       return false;
     } catch (error) {
       this.libreOfficeAvailable = false;
@@ -287,11 +295,19 @@ class ConversionQueue {
   }
 
   private async convertOfficeToPdf(inputPath: string, outputPath: string, outputDir: string): Promise<boolean> {
-    const libreOfficePaths = [
-      'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-      'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-      'soffice',
-    ];
+    const libreOfficePaths = process.platform === 'win32'
+      ? [
+          'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+          'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+          'soffice',
+        ]
+      : [
+          'soffice',
+          '/usr/bin/soffice',
+          '/usr/local/bin/soffice',
+          'libreoffice',
+          '/usr/bin/libreoffice',
+        ];
 
     let lastError: Error | null = null;
 
