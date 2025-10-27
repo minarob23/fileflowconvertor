@@ -208,20 +208,38 @@ class ConversionQueue {
       // Check if Python is available (try python3 first for Linux, then python for Windows)
       let pythonCmd = 'python';
       try {
-        await execAsync('python3 --version', { timeout: 5000 });
+        const { stdout } = await execAsync('python3 --version', { timeout: 5000 });
         pythonCmd = 'python3';
-        console.log('✓ Using python3 command');
+        console.log(`✓ Using python3 command: ${stdout.trim()}`);
       } catch {
         try {
-          await execAsync('python --version', { timeout: 5000 });
+          const { stdout } = await execAsync('python --version', { timeout: 5000 });
           pythonCmd = 'python';
-          console.log('✓ Using python command');
+          console.log(`✓ Using python command: ${stdout.trim()}`);
         } catch {
           console.error('❌ Python is not installed or not in PATH');
           console.error('👉 Please install Python from https://www.python.org/downloads/');
           console.error('👉 Or see WINDOWS_SETUP.md for detailed setup instructions');
           return false;
         }
+      }
+
+      // Check if required Python packages are installed
+      try {
+        let packageToCheck = '';
+        if (targetFormat === 'word') packageToCheck = 'pdf2docx';
+        else if (targetFormat === 'excel') packageToCheck = 'tabula';
+        else if (targetFormat === 'ppt') packageToCheck = 'pdf2image';
+
+        if (packageToCheck) {
+          await execAsync(`${pythonCmd} -c "import ${packageToCheck}"`, { timeout: 5000 });
+          console.log(`✓ Python package '${packageToCheck}' is available`);
+        }
+      } catch (error: any) {
+        console.error(`❌ Required Python package not found for ${targetFormat} conversion`);
+        console.error(`   Error: ${error.message}`);
+        console.error(`👉 Install dependencies: pip3 install -r server/requirements.txt`);
+        return false;
       }
 
       // Check if input file exists
